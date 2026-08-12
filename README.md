@@ -1,2 +1,2 @@
-# qc-variant
-Benchmarking variant implementation
+# qc-visit
+Benchmarking visit implementation
