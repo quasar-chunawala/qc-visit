@@ -55,9 +55,15 @@ namespace dev{
         return dispatcher<Indices...>::template dispatch<Func, Vs...>;
     }
 
+    // I think the first index_sequence<> argument can be used to accumulate the coordinates 
+    // of where we are in the (sizeof...(Vs) + 1)- dimensional array. 
     template<typename Func, typename V, typename... Vs, size_t... Is, size_t... Js, typename... Seqs>
     constexpr auto make_func_poly_array_impl(std::index_sequence<Is...>, std::index_sequence<Js...>, Seqs... seqs){
-        // return poly_array( /* What should go here*/ )
+        /*
+        1. Does the below look correct?
+        2. What happens when we no more Seqs are left? 
+         return poly_array( { make_func_poly_array_impl< Func, Vs..., Js... >(std::index_Sequence<Is..., Js>, seqs)... } );
+        */
     }
 
     template<typename Func, typename... Vs>
