@@ -6,7 +6,7 @@
 #include <functional>
 #include <variant>
 
-namespace dev{
+namespace qc{
     /**
      * @brief A light n-dimensional array.
      * 
@@ -15,37 +15,28 @@ namespace dev{
     struct poly_array{
         T m_buffer[Size] = {};
 
-        template<typename... Ts>
-        poly_array(Ts... values)
-        {
-            using result_t = std::common_type_t<std::remove_cv_t<Ts>...>;
-            static_assert(std::is_same_v<T, result_t>);
-            m_buffer = { {values...} };
-        }
-
         constexpr T& operator[](std::size_t idx){
             return m_buffer[idx];
         }
  
+        decltype(auto) constexpr at(std::size_t index){
+            return m_buffer[index];
+        }
         template<typename... Indices>
         decltype(auto) constexpr at(std::size_t index, Indices... indices){
-            return at(m_buffer[index], indices...);
-        }
-
-        template<typename U, typename... Indices>
-        decltype(auto) constexpr at(U elements, std::size_t index, Indices... indices){
-            return at(elements[index], indices...);
+            return m_buffer[index].at(indices...);
         }
     };
 
     template<size_t... Indices>
     struct dispatcher{
-        static constexpr auto dispatch = []<typename Func, typename... Vs>(Func f, Vs... vs){
-            using return_type_t = decltype(f(std::get<0>(vs)...));
+        template<typename Func, typename... Vs>
+        static constexpr auto dispatch(Func&& f, Vs&&... vs){
+            using return_type_t = decltype(std::forward<Func>(f)(std::get<0>(std::forward<Vs>(vs))...));
             if constexpr(std::is_same_v<return_type_t, void>){
-                std::invoke(f, std::get<Indices>(vs)...);
+                std::invoke(std::forward<Func>(f), std::get<Indices>(std::forward<Vs>(vs))...);
             }else{
-                return std::invoke(f, std::get<Indices>(vs)...);
+                return std::invoke(std::forward<Func>(f), std::get<Indices>(std::forward<Vs>(vs))...);
             }
         };
     };
@@ -55,19 +46,27 @@ namespace dev{
         return dispatcher<Indices...>::template dispatch<Func, Vs...>;
     }
 
-    // I think the first index_sequence<> argument can be used to accumulate the coordinates 
-    // of where we are in the (sizeof...(Vs) + 1)- dimensional array. 
-    template<typename Func, typename V, typename... Vs, size_t... Is, size_t... Js, typename... Seqs>
+    /**
+     * @brief The terminal case, when we are at the leaf of the multi-dimensional
+     * array.
+     */
+    template<typename Func, typename... Vs, size_t... Is>
+    constexpr auto make_func_poly_array_impl(std::index_sequence<Is...>){
+        return make_dispatch<Func, Vs...>(std::index_sequence<Is...>());
+    }
+
+    /**
+     * @brief Constructs a 1d-array indexed by non-type template parameter <Is...,J>
+     *        whose each element is a recursive call to make_func_poly_array_impl
+     */
+    template<typename Func, typename... Vs, size_t... Is, size_t... Js, typename... Seqs>
     constexpr auto make_func_poly_array_impl(std::index_sequence<Is...>, std::index_sequence<Js...>, Seqs... seqs){
-        /*
-        1. Does the below look correct?
-        2. What happens when we no more Seqs are left? 
-         return poly_array( { make_func_poly_array_impl< Func, Vs..., Js... >(std::index_Sequence<Is..., Js>, seqs)... } );
-        */
+        using result_t = decltype(make_func_poly_array_impl<Func, Vs...>(std::index_sequence<Is...,0>(), seqs...));
+        return poly_array<result_t,sizeof...(Js)>{ (make_func_poly_array_impl<Func, Vs...>(std::index_sequence<Is..., Js>(), seqs...))...};
     }
 
     template<typename Func, typename... Vs>
     constexpr auto make_func_poly_array(){
-            return make_func_poly_array_impl<Func, Vs...>(std::index_sequence<>(), std::make_index_sequence<std::variant_size_v<Vs>>()...);
+        return make_func_poly_array_impl<Func, Vs...>(std::index_sequence<>(), std::make_index_sequence<std::variant_size_v<std::remove_cvref_t<Vs>>>()...);
     }
 }

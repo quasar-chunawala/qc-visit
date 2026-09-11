@@ -1,0 +1,8 @@
+Checks:>
+  -*,
+  bugprone-*
+  performance-*,
+  readability-*,
+  cppcoreguidelines-pro-type-*
+WarningsAsErrors: ''
+FormatStyle: file
