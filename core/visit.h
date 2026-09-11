@@ -11,7 +11,7 @@
 #include <format>
 
 namespace qc::tools{
-    template<std::size_t... Dimensions>
+    /*template<std::size_t... Dimensions>
     constexpr auto build_coeffs_array(){
         constexpr std::array<std::size_t, sizeof...(Dimensions)> dimensions { Dimensions... };
         constexpr std::size_t coeffs_size = sizeof...(Dimensions);
@@ -25,6 +25,19 @@ namespace qc::tools{
             for(std::size_t j{0}; j <= i; ++j){
                 coeffs[j] *= dimensions[i+1];
             }
+        }
+        return coeffs;
+    }*/
+    template<std::size_t... Dimensions>
+    constexpr auto build_coeffs_array(){
+        constexpr std::array<std::size_t, sizeof...(Dimensions)> dimensions { Dimensions... };
+        constexpr std::size_t coeffs_size = sizeof...(Dimensions);
+        std::array<std::size_t, coeffs_size> coeffs = {};
+        
+        coeffs[coeffs_size - 1] = 1;
+
+        for(int i{coeffs_size - 2}; i >= 0; i--){
+            coeffs[i] = dimensions[i + 1] * coeffs[i + 1];
         }
         return coeffs;
     }
