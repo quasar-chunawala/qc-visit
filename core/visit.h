@@ -62,7 +62,7 @@ namespace qc::tools{
 
 // Simple case of 2 variants
 namespace qc{
-
+    /*
     namespace example{
 
         struct Dummy{};
@@ -89,6 +89,7 @@ namespace qc{
             return vtable[qc::tools::to_1d_index<2,2>(v0.index(), v1.index())](visitor, v0, v1);
         }
     };
+    */
 }
 
 template<typename... Callables>
