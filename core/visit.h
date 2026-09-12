@@ -97,6 +97,7 @@ struct Visitor : Callables...{
     using Callables::operator()...;
 };
 
+// Codegen - https://godbolt.org/z/8jTGTxezn
 namespace qc::flat_array{
     template <typename Visitor, typename... Variants>
 	decltype(auto) visit(Visitor &&visitor, Variants &&...vs) {
