@@ -16,5 +16,5 @@ g++ -std=c++23 -O2 -DNDEBUG -Icore core/tests_visit_stdlib.cpp -lbenchmark -lpth
 sudo chrt -f 10 taskset -c 3 ./bench_stdlib_gcc \
     --benchmark_min_time=2.0s \
     --benchmark_repetitions=30 \
-    --benchmark_out=stdlib_results_v1.json \
+    --benchmark_out=stdlib_results_v2.json \
     --benchmark_out_format=json
