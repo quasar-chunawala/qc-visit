@@ -8,7 +8,8 @@ struct Overloaded : Callables...{
     using Callables::operator()...;
 };
 
-static std::mt19937 generator(std::random_device{}());
+// Fixed seed, so that we have a reproducible workload
+static std::mt19937 generator(12345);
 struct Type_1{
     double value{std::uniform_real_distribution<double>{}(generator)};
 };
@@ -70,7 +71,6 @@ struct Type_15{
 };
 
 int sample_uniform_random(int a, int b){
-    static std::mt19937 generator{std::random_device{}()};
     std::uniform_int_distribution<int> dist(a, b);
     return dist(generator);
 }
