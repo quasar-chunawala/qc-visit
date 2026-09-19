@@ -3,6 +3,8 @@
 #include <array>
 #include <iostream>
 
+#include "visit.h"
+
 template<typename... Callables>
 struct Overloaded : Callables...{
     using Callables::operator()...;
@@ -75,12 +77,50 @@ int sample_uniform_random(int a, int b){
     return dist(generator);
 }
 
+static constexpr size_t N = 10000;
+static std::vector<std::variant<Type_1, Type_2>> v1_data(N),
+    v2_data(N),
+    v3_data(N),
+    v4_data(N),
+    v5_data(N),
+    v6_data(N),
+    v7_data(N),
+    v8_data(N),
+    v9_data(N),
+    v10_data(N);
+
+static std::vector<std::vector<std::variant<Type_1, Type_2>>> vecs{
+    v1_data,
+    v2_data,
+    v3_data,
+    v4_data,
+    v5_data,
+    v6_data,
+    v7_data,
+    v8_data,
+    v9_data,
+    v10_data
+};
+
+static std::variant<Type_1, Type_2> v1{Type_1()};
+static std::variant<Type_1, Type_2> v2{Type_2()};
+static std::array arr{ v1, v2 };   
+
+
+static void initialize_vectors(std::vector<std::vector<std::variant<Type_1, Type_2>>>& vecs){
+    for(size_t i = 0; i < N; ++i){
+        std::array<size_t, 10> r{};
+        for(size_t j = 0; j < 10; ++j){
+            r[j] = sample_uniform_random(0, 1);
+            vecs[j][i] = arr[r[j]];
+        }
+    }
+}
+
 #include <benchmark/benchmark.h>
 
 static void BM_std_visit_arity_2(benchmark::State& state) {
-    std::variant<Type_1, Type_2> v1{Type_1()};
-    std::variant<Type_1, Type_2> v2{Type_2()};
-    auto arr = std::array{v1, v2};
+    initialize_vectors(vecs);
 
     auto visitor = Overloaded{
         [](Type_1, Type_1)->size_t{ return 0; },
@@ -89,20 +129,17 @@ static void BM_std_visit_arity_2(benchmark::State& state) {
         [](Type_2, Type_2)-> size_t{ return 3; }
     };
 
+    size_t i = 0;
     for (auto _ : state) {
-        std::size_t r1 = sample_uniform_random(0, 1);
-        std::size_t r2 = sample_uniform_random(0, 1);
-        auto result = std::visit(visitor, arr[r1], arr[r2]);
+        auto result = std::visit(visitor, vecs[0][i], vecs[1][i]);
         benchmark::DoNotOptimize(result);
+        i = (i + 1) % N;
     }
 }
 BENCHMARK(BM_std_visit_arity_2);
 
 static void BM_std_visit_arity_3(benchmark::State& state) {
-    std::variant<Type_1, Type_2> v1{Type_1()};
-    std::variant<Type_1, Type_2> v2{Type_2()};
-    std::variant<Type_1, Type_2> v3{Type_1()};
-    auto arr = std::array{v1, v2, v3};
+    initialize_vectors(vecs);
 
     auto visitor = Overloaded{
         [](Type_1, Type_1, Type_1)->size_t{ return 0; },
@@ -115,22 +152,17 @@ static void BM_std_visit_arity_3(benchmark::State& state) {
         [](Type_2, Type_2, Type_2)->size_t{ return 7; },
     };
 
+    size_t i = 0;
     for (auto _ : state) {
-        std::size_t r1 = sample_uniform_random(0, 1);
-        std::size_t r2 = sample_uniform_random(0, 1);
-        std::size_t r3 = sample_uniform_random(0, 1);
-        auto result = std::visit(visitor, arr[r1], arr[r2], arr[r3]);
+        auto result = std::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i]);
         benchmark::DoNotOptimize(result);
+        i = (i + 1) % N;
     }
 }
 BENCHMARK(BM_std_visit_arity_3);
 
 static void BM_std_visit_arity_4(benchmark::State& state) {
-    std::variant<Type_1, Type_2> v1{Type_1()};
-    std::variant<Type_1, Type_2> v2{Type_2()};
-    std::variant<Type_1, Type_2> v3{Type_1()};
-    std::variant<Type_1, Type_2> v4{Type_2()};
-    auto arr = std::array{v1, v2, v3, v4};
+    initialize_vectors(vecs);
 
     auto visitor = Overloaded{
         [](Type_1, Type_1, Type_1, Type_1)->size_t{ return 0; },
@@ -151,24 +183,17 @@ static void BM_std_visit_arity_4(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2)->size_t{ return 15; },
     };
 
+    size_t i = 0;
     for (auto _ : state) {
-        std::size_t r1 = sample_uniform_random(0, 1);
-        std::size_t r2 = sample_uniform_random(0, 1);
-        std::size_t r3 = sample_uniform_random(0, 1);
-        std::size_t r4 = sample_uniform_random(0, 1);
-        auto result = std::visit(visitor, arr[r1], arr[r2], arr[r3], arr[r4]);
+        auto result = std::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i]);
         benchmark::DoNotOptimize(result);
+        i = (i + 1) % N;
     }
 }
 BENCHMARK(BM_std_visit_arity_4);
 
 static void BM_std_visit_arity_5(benchmark::State& state) {
-    std::variant<Type_1, Type_2> v1{Type_1()};
-    std::variant<Type_1, Type_2> v2{Type_2()};
-    std::variant<Type_1, Type_2> v3{Type_1()};
-    std::variant<Type_1, Type_2> v4{Type_2()};
-    std::variant<Type_1, Type_2> v5{Type_1()};
-    auto arr = std::array{v1, v2, v3, v4, v5};
+    initialize_vectors(vecs);
 
     auto visitor = Overloaded{
         [](Type_1, Type_1, Type_1, Type_1, Type_1)->size_t{ return 0; },
@@ -205,26 +230,17 @@ static void BM_std_visit_arity_5(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2, Type_2)->size_t{ return 31; },
     };
 
+    size_t i = 0;
     for (auto _ : state) {
-        std::size_t r1 = sample_uniform_random(0, 1);
-        std::size_t r2 = sample_uniform_random(0, 1);
-        std::size_t r3 = sample_uniform_random(0, 1);
-        std::size_t r4 = sample_uniform_random(0, 1);
-        std::size_t r5 = sample_uniform_random(0, 1);
-        auto result = std::visit(visitor, arr[r1], arr[r2], arr[r3], arr[r4], arr[r5]);
+        auto result = std::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i]);
         benchmark::DoNotOptimize(result);
+        i = (i + 1) % N;
     }
 }
 BENCHMARK(BM_std_visit_arity_5);
 
 static void BM_std_visit_arity_6(benchmark::State& state) {
-    std::variant<Type_1, Type_2> v1{Type_1()};
-    std::variant<Type_1, Type_2> v2{Type_2()};
-    std::variant<Type_1, Type_2> v3{Type_1()};
-    std::variant<Type_1, Type_2> v4{Type_2()};
-    std::variant<Type_1, Type_2> v5{Type_1()};
-    std::variant<Type_1, Type_2> v6{Type_2()};
-    auto arr = std::array{v1, v2, v3, v4, v5, v6};
+    initialize_vectors(vecs);
 
     auto visitor = Overloaded{
         [](Type_1, Type_1, Type_1, Type_1, Type_1, Type_1)->size_t{ return 0; },
@@ -293,28 +309,17 @@ static void BM_std_visit_arity_6(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2, Type_2, Type_2)->size_t{ return 63; },
     };
 
+    size_t i = 0;
     for (auto _ : state) {
-        std::size_t r1 = sample_uniform_random(0, 1);
-        std::size_t r2 = sample_uniform_random(0, 1);
-        std::size_t r3 = sample_uniform_random(0, 1);
-        std::size_t r4 = sample_uniform_random(0, 1);
-        std::size_t r5 = sample_uniform_random(0, 1);
-        std::size_t r6 = sample_uniform_random(0, 1);
-        auto result = std::visit(visitor, arr[r1], arr[r2], arr[r3], arr[r4], arr[r5], arr[r6]);
+        auto result = std::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i]);
         benchmark::DoNotOptimize(result);
+        i = (i + 1) % N;
     }
 }
 BENCHMARK(BM_std_visit_arity_6);
 
 static void BM_std_visit_arity_7(benchmark::State& state) {
-    std::variant<Type_1, Type_2> v1{Type_1()};
-    std::variant<Type_1, Type_2> v2{Type_2()};
-    std::variant<Type_1, Type_2> v3{Type_1()};
-    std::variant<Type_1, Type_2> v4{Type_2()};
-    std::variant<Type_1, Type_2> v5{Type_1()};
-    std::variant<Type_1, Type_2> v6{Type_2()};
-    std::variant<Type_1, Type_2> v7{Type_1()};
-    auto arr = std::array{v1, v2, v3, v4, v5, v6, v7};
+    initialize_vectors(vecs);
 
     auto visitor = Overloaded{
         [](Type_1, Type_1, Type_1, Type_1, Type_1, Type_1, Type_1)->size_t{ return 0; },
@@ -447,30 +452,17 @@ static void BM_std_visit_arity_7(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2)->size_t{ return 127; },
     };
 
+    size_t i = 0;
     for (auto _ : state) {
-        std::size_t r1 = sample_uniform_random(0, 1);
-        std::size_t r2 = sample_uniform_random(0, 1);
-        std::size_t r3 = sample_uniform_random(0, 1);
-        std::size_t r4 = sample_uniform_random(0, 1);
-        std::size_t r5 = sample_uniform_random(0, 1);
-        std::size_t r6 = sample_uniform_random(0, 1);
-        std::size_t r7 = sample_uniform_random(0, 1);
-        auto result = std::visit(visitor, arr[r1], arr[r2], arr[r3], arr[r4], arr[r5], arr[r6], arr[r7]);
+        auto result = std::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i]);
         benchmark::DoNotOptimize(result);
+        i = (i + 1) % N;
     }
 }
 BENCHMARK(BM_std_visit_arity_7);
 
 static void BM_std_visit_arity_8(benchmark::State& state) {
-    std::variant<Type_1, Type_2> v1{Type_1()};
-    std::variant<Type_1, Type_2> v2{Type_2()};
-    std::variant<Type_1, Type_2> v3{Type_1()};
-    std::variant<Type_1, Type_2> v4{Type_2()};
-    std::variant<Type_1, Type_2> v5{Type_1()};
-    std::variant<Type_1, Type_2> v6{Type_2()};
-    std::variant<Type_1, Type_2> v7{Type_1()};
-    std::variant<Type_1, Type_2> v8{Type_2()};
-    auto arr = std::array{v1, v2, v3, v4, v5, v6, v7, v8};
+    initialize_vectors(vecs);
 
     auto visitor = Overloaded{
         [](Type_1, Type_1, Type_1, Type_1, Type_1, Type_1, Type_1, Type_1)->size_t{ return 0; },
@@ -731,33 +723,17 @@ static void BM_std_visit_arity_8(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2)->size_t{ return 255; },
     };
 
+    size_t i = 0;
     for (auto _ : state) {
-        std::size_t r1 = sample_uniform_random(0, 1);
-        std::size_t r2 = sample_uniform_random(0, 1);
-        std::size_t r3 = sample_uniform_random(0, 1);
-        std::size_t r4 = sample_uniform_random(0, 1);
-        std::size_t r5 = sample_uniform_random(0, 1);
-        std::size_t r6 = sample_uniform_random(0, 1);
-        std::size_t r7 = sample_uniform_random(0, 1);
-        std::size_t r8 = sample_uniform_random(0, 1);
-        auto result = std::visit(visitor, arr[r1], arr[r2], arr[r3], arr[r4], arr[r5], arr[r6], arr[r7], arr[r8]);
+        auto result = std::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i]);
         benchmark::DoNotOptimize(result);
+        i = (i + 1) % N;
     }
 }
 BENCHMARK(BM_std_visit_arity_8);
 
 static void BM_std_visit_arity_10(benchmark::State& state) {
-    std::variant<Type_1, Type_2> v1{Type_1()};
-    std::variant<Type_1, Type_2> v2{Type_2()};
-    std::variant<Type_1, Type_2> v3{Type_1()};
-    std::variant<Type_1, Type_2> v4{Type_2()};
-    std::variant<Type_1, Type_2> v5{Type_1()};
-    std::variant<Type_1, Type_2> v6{Type_2()};
-    std::variant<Type_1, Type_2> v7{Type_1()};
-    std::variant<Type_1, Type_2> v8{Type_2()};
-    std::variant<Type_1, Type_2> v9{Type_1()};
-    std::variant<Type_1, Type_2> v10{Type_2()};
-    auto arr = std::array{v1, v2, v3, v4, v5, v6, v7, v8, v9, v10};
+    initialize_vectors(vecs);
 
     auto visitor = Overloaded{
         [](Type_1, Type_1, Type_1, Type_1, Type_1, Type_1, Type_1, Type_1, Type_1, Type_1)->size_t{ return 0; },
@@ -1786,19 +1762,11 @@ static void BM_std_visit_arity_10(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2)->size_t{ return 1023; },
     };
 
+    size_t i = 0;
     for (auto _ : state) {
-        std::size_t r1 = sample_uniform_random(0, 1);
-        std::size_t r2 = sample_uniform_random(0, 1);
-        std::size_t r3 = sample_uniform_random(0, 1);
-        std::size_t r4 = sample_uniform_random(0, 1);
-        std::size_t r5 = sample_uniform_random(0, 1);
-        std::size_t r6 = sample_uniform_random(0, 1);
-        std::size_t r7 = sample_uniform_random(0, 1);
-        std::size_t r8 = sample_uniform_random(0, 1);
-        std::size_t r9 = sample_uniform_random(0, 1);
-        std::size_t r10 = sample_uniform_random(0, 1);
-        auto result = std::visit(visitor, arr[r1], arr[r2], arr[r3], arr[r4], arr[r5], arr[r6], arr[r7], arr[r8], arr[r9], arr[r10]);
+        auto result = std::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i], vecs[8][i], vecs[9][i]);
         benchmark::DoNotOptimize(result);
+        i = (i + 1) % N;
     }
 }
 BENCHMARK(BM_std_visit_arity_10);
