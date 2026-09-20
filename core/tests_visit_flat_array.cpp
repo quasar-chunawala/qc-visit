@@ -5,95 +5,6 @@
 
 #include "visit.h"
 
-// Build with -DQC_PERF_COUNTERS to compile in per-visit() hardware counter
-// reads (ioctl/read around each call). Leave it off for the binary you run
-// under `perf stat` or plain `build.sh` timing -- the ioctl/read pair costs
-// tens of ns per call and skews Time/CPU when it's always compiled in.
-#ifdef QC_PERF_COUNTERS
-
-#include <cstdint>
-#include <cstring>
-#include <linux/perf_event.h>
-#include <asm/unistd.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-
-// Opens a group of two counters (leader: cycles, member: instructions),
-// both scoped to the calling thread only (exclude_kernel, inherit=0).
-static void open_cycle_instruction_counters(int& cycles_fd, int& instructions_fd){
-    perf_event_attr cycles_attr{};
-    cycles_attr.type = PERF_TYPE_HARDWARE;
-    cycles_attr.size = sizeof(cycles_attr);
-    cycles_attr.config = PERF_COUNT_HW_CPU_CYCLES;
-    cycles_attr.disabled = 1;
-    cycles_attr.exclude_kernel = 1;
-    cycles_attr.exclude_hv = 1;
-    cycles_attr.inherit = 0;
-
-    cycles_fd = static_cast<int>(syscall(__NR_perf_event_open, &cycles_attr, 0, -1, -1, 0));
-    if (cycles_fd == -1) {
-        std::cerr << "perf_event_open (cycles) failed: " << std::strerror(errno) << "\n";
-        return;
-    }
-
-    perf_event_attr instructions_attr{};
-    instructions_attr.type = PERF_TYPE_HARDWARE;
-    instructions_attr.size = sizeof(instructions_attr);
-    instructions_attr.config = PERF_COUNT_HW_INSTRUCTIONS;
-    instructions_attr.disabled = 0;
-    instructions_attr.exclude_kernel = 1;
-    instructions_attr.exclude_hv = 1;
-    instructions_attr.inherit = 0;
-
-    instructions_fd = static_cast<int>(syscall(__NR_perf_event_open, &instructions_attr, 0, -1, cycles_fd, 0));
-    if (instructions_fd == -1) {
-        std::cerr << "perf_event_open (instructions) failed: " << std::strerror(errno) << "\n";
-        close(cycles_fd);
-        cycles_fd = -1;
-    }
-}
-
-static void close_counters(int cycles_fd, int instructions_fd){
-    if (instructions_fd >= 0) close(instructions_fd);
-    if (cycles_fd >= 0) close(cycles_fd);
-}
-
-#define QC_PERF_DECLARE_COUNTERS() \
-    int cycles_fd = -1, instructions_fd = -1; \
-    open_cycle_instruction_counters(cycles_fd, instructions_fd); \
-    std::uint64_t total_cycles = 0, total_instructions = 0
-
-#define QC_PERF_BEGIN() \
-    ioctl(cycles_fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP); \
-    ioctl(cycles_fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP)
-
-#define QC_PERF_END() \
-    do { \
-        ioctl(cycles_fd, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP); \
-        std::uint64_t c = 0, ins = 0; \
-        read(cycles_fd, &c, sizeof(c)); \
-        read(instructions_fd, &ins, sizeof(ins)); \
-        total_cycles += c; \
-        total_instructions += ins; \
-    } while (0)
-
-#define QC_PERF_REPORT(state) \
-    do { \
-        close_counters(cycles_fd, instructions_fd); \
-        (state).counters["visit_cycles"] = static_cast<double>(total_cycles); \
-        (state).counters["visit_instructions"] = static_cast<double>(total_instructions); \
-        (state).counters["visit_insn_per_cycle"] = total_cycles ? static_cast<double>(total_instructions) / static_cast<double>(total_cycles) : 0.0; \
-    } while (0)
-
-#else // !QC_PERF_COUNTERS
-
-#define QC_PERF_DECLARE_COUNTERS()
-#define QC_PERF_BEGIN()
-#define QC_PERF_END()
-#define QC_PERF_REPORT(state)
-
-#endif // QC_PERF_COUNTERS
-
 template<typename... Callables>
 struct Overloaded : Callables...{
     using Callables::operator()...;
@@ -218,21 +129,13 @@ static void BM_flat_array_visit_arity_2(benchmark::State& state) {
         [](Type_2, Type_2)-> size_t{ return 3; }
     };
 
-    QC_PERF_DECLARE_COUNTERS();
-
     size_t i = 0;
     for (auto _ : state) {
         decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i])) result;
-        {
-            QC_PERF_BEGIN();
-            result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i]);
-            QC_PERF_END();
-        }
+        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
-
-    QC_PERF_REPORT(state);
 }
 BENCHMARK(BM_flat_array_visit_arity_2);
 
@@ -250,21 +153,13 @@ static void BM_flat_array_visit_arity_3(benchmark::State& state) {
         [](Type_2, Type_2, Type_2)->size_t{ return 7; },
     };
 
-    QC_PERF_DECLARE_COUNTERS();
-
     size_t i = 0;
     for (auto _ : state) {
         decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i])) result;
-        {
-            QC_PERF_BEGIN();
-            result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i]);
-            QC_PERF_END();
-        }
+        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
-
-    QC_PERF_REPORT(state);
 }
 BENCHMARK(BM_flat_array_visit_arity_3);
 
@@ -290,21 +185,13 @@ static void BM_flat_array_visit_arity_4(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2)->size_t{ return 15; },
     };
 
-    QC_PERF_DECLARE_COUNTERS();
-
     size_t i = 0;
     for (auto _ : state) {
         decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i])) result;
-        {
-            QC_PERF_BEGIN();
-            result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i]);
-            QC_PERF_END();
-        }
+        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
-
-    QC_PERF_REPORT(state);
 }
 BENCHMARK(BM_flat_array_visit_arity_4);
 
@@ -346,21 +233,13 @@ static void BM_flat_array_visit_arity_5(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2, Type_2)->size_t{ return 31; },
     };
 
-    QC_PERF_DECLARE_COUNTERS();
-
     size_t i = 0;
     for (auto _ : state) {
         decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i])) result;
-        {
-            QC_PERF_BEGIN();
-            result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i]);
-            QC_PERF_END();
-        }
+        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
-
-    QC_PERF_REPORT(state);
 }
 BENCHMARK(BM_flat_array_visit_arity_5);
 
@@ -434,21 +313,13 @@ static void BM_flat_array_visit_arity_6(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2, Type_2, Type_2)->size_t{ return 63; },
     };
 
-    QC_PERF_DECLARE_COUNTERS();
-
     size_t i = 0;
     for (auto _ : state) {
         decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i])) result;
-        {
-            QC_PERF_BEGIN();
-            result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i]);
-            QC_PERF_END();
-        }
+        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
-
-    QC_PERF_REPORT(state);
 }
 BENCHMARK(BM_flat_array_visit_arity_6);
 
@@ -586,21 +457,13 @@ static void BM_flat_array_visit_arity_7(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2)->size_t{ return 127; },
     };
 
-    QC_PERF_DECLARE_COUNTERS();
-
     size_t i = 0;
     for (auto _ : state) {
         decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i])) result;
-        {
-            QC_PERF_BEGIN();
-            result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i]);
-            QC_PERF_END();
-        }
+        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
-
-    QC_PERF_REPORT(state);
 }
 BENCHMARK(BM_flat_array_visit_arity_7);
 
@@ -866,21 +729,13 @@ static void BM_flat_array_visit_arity_8(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2)->size_t{ return 255; },
     };
 
-    QC_PERF_DECLARE_COUNTERS();
-
     size_t i = 0;
     for (auto _ : state) {
         decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i])) result;
-        {
-            QC_PERF_BEGIN();
-            result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i]);
-            QC_PERF_END();
-        }
+        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
-
-    QC_PERF_REPORT(state);
 }
 BENCHMARK(BM_flat_array_visit_arity_8);
 
@@ -1914,21 +1769,13 @@ static void BM_flat_array_visit_arity_10(benchmark::State& state) {
         [](Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2, Type_2)->size_t{ return 1023; },
     };
 
-    QC_PERF_DECLARE_COUNTERS();
-
     size_t i = 0;
     for (auto _ : state) {
         decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i], vecs[8][i], vecs[9][i])) result;
-        {
-            QC_PERF_BEGIN();
-            result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i], vecs[8][i], vecs[9][i]);
-            QC_PERF_END();
-        }
+        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i], vecs[8][i], vecs[9][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
-
-    QC_PERF_REPORT(state);
 }
 BENCHMARK(BM_flat_array_visit_arity_10);
 
