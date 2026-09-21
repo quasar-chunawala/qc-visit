@@ -1,2 +1,8 @@
 .venv/
 .vscode/
+
+bench_visit_libstdcxx
+bench_visit_libcxx
+bench_visit_mdspan_impl
+bench_visit_polyarray
+bench_flat_array

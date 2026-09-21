@@ -94,11 +94,25 @@ namespace qc{
     namespace mdspan_impl{
         template<typename Visitor, typename... Variants>
         constexpr decltype(auto) visit(Visitor&& visitor, Variants&&... vs){
-            using result_t = decltype(std::forward<Visitor>(visitor)(std::get<0>(std::forward<Variants>(vs))...));
+            using result_t = decltype(std::declval<Visitor>()(
+                std::declval<std::variant_alternative_t<0, std::remove_cvref_t<Variants>>>()...
+            ));
             using cases_t = result_t(*)(Visitor&&, Variants&&...);
-
-            static constexpr auto vtable = make_flat_array(std::forward<Visitor>(visitor), std::forward<Variants>(vs)...);
-            static constexpr auto vtable_md_view = std::mdspan<cases_t, std::extents<std::size_t, std::variant_size_v<Variants>...>>(vtable.data());
+            constexpr std::size_t vtable_size = (std::variant_size_v<std::remove_cvref_t<Variants>> * ...);
+            static constexpr auto func_table = qc::flat_array::make_flat_array(std::forward<Visitor>(visitor), std::forward<Variants>(vs)...);
+            static_assert(std::is_same_v<decltype(func_table), const std::array<cases_t, vtable_size>>);
+            // LayoutPolicy
+            // When constructing the flat array of function pointers, the multi-dimensional index <i,j,k> is mapped to an offset 
+            // in the 1d-array, such that the right-most index gives stride-1 access to the underlying memory.
+            // This is also called row-major order. Hence, the default LayoutPolicy = std::layout_right should
+            // work just fine for our use-case.
+            // 
+            // AccessorPolicy
+            // Specifies how to convert the underlying 1D-index to a reference to T. 
+            auto data_ = const_cast<cases_t*>(func_table.data());
+            static auto func_table_view = std::mdspan<cases_t, std::extents<std::size_t, std::variant_size_v<std::remove_cvref_t<Variants>>...>>(data_);
+            auto func = func_table_view[vs.index()...];
+            return func(std::forward<Visitor>(visitor), std::forward<Variants>(vs)...);
         }
     }
 }
