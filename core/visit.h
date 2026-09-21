@@ -1,6 +1,7 @@
 #include "poly_array.h"
 #include "utils.h"
-
+#include <utility>
+#include <mdspan>
 
 // Simple case of 2 variants
 namespace qc{
@@ -42,7 +43,7 @@ struct Visitor : Callables...{
 // Codegen - https://godbolt.org/z/8jTGTxezn
 namespace qc::flat_array{
     template <typename Visitor, typename... Variants>
-	decltype(auto) visit(Visitor &&visitor, Variants &&...vs) {
+    static constexpr decltype(auto) make_flat_array(Visitor&& visitor, Variants&&... vs){
         constexpr std::size_t vtable_size = (std::variant_size_v<std::remove_cvref_t<Variants>> * ...);
 
         // Each entry in the vtable should have the shape [](Visitor visitor, Variants... vs){}
@@ -64,6 +65,12 @@ namespace qc::flat_array{
                 };
             }(std::make_index_sequence<vtable_size>())
         };
+        return vtable;
+    }
+
+    template <typename Visitor, typename... Variants>
+	decltype(auto) visit(Visitor &&visitor, Variants &&...vs) {
+        static constexpr auto vtable = make_flat_array(std::forward<Visitor>(visitor), std::forward<Variants>(vs)...);
 
         auto i = qc::tools::to_1d_index<std::variant_size_v<std::remove_cvref_t<Variants>>...>(vs.index()...);
         return vtable[i](std::forward<Visitor>(visitor), std::forward<Variants>(vs)... );
@@ -85,9 +92,13 @@ namespace qc{
 
 namespace qc{
     namespace mdspan_impl{
-        template<typename Visitor, typename... Vs>
-        constexpr decltype(auto) visit(Visitor&& visitor, Vs&&... vs){
-            
+        template<typename Visitor, typename... Variants>
+        constexpr decltype(auto) visit(Visitor&& visitor, Variants&&... vs){
+            using result_t = decltype(std::forward<Visitor>(visitor)(std::get<0>(std::forward<Variants>(vs))...));
+            using cases_t = result_t(*)(Visitor&&, Variants&&...);
+
+            static constexpr auto vtable = make_flat_array(std::forward<Visitor>(visitor), std::forward<Variants>(vs)...);
+            static constexpr auto vtable_md_view = std::mdspan<cases_t, std::extents<std::size_t, std::variant_size_v<Variants>...>>(vtable.data());
         }
     }
 }

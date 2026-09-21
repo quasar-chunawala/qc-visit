@@ -155,8 +155,7 @@ static void BM_flat_array_visit_arity_3(benchmark::State& state) {
 
     size_t i = 0;
     for (auto _ : state) {
-        decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i])) result;
-        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i]);
+        auto result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
@@ -187,8 +186,7 @@ static void BM_flat_array_visit_arity_4(benchmark::State& state) {
 
     size_t i = 0;
     for (auto _ : state) {
-        decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i])) result;
-        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i]);
+        auto result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
@@ -235,8 +233,7 @@ static void BM_flat_array_visit_arity_5(benchmark::State& state) {
 
     size_t i = 0;
     for (auto _ : state) {
-        decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i])) result;
-        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i]);
+        auto result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
@@ -315,8 +312,7 @@ static void BM_flat_array_visit_arity_6(benchmark::State& state) {
 
     size_t i = 0;
     for (auto _ : state) {
-        decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i])) result;
-        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i]);
+        auto result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
@@ -459,8 +455,7 @@ static void BM_flat_array_visit_arity_7(benchmark::State& state) {
 
     size_t i = 0;
     for (auto _ : state) {
-        decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i])) result;
-        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i]);
+        auto result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
@@ -731,8 +726,7 @@ static void BM_flat_array_visit_arity_8(benchmark::State& state) {
 
     size_t i = 0;
     for (auto _ : state) {
-        decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i])) result;
-        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i]);
+        auto result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
@@ -1771,8 +1765,7 @@ static void BM_flat_array_visit_arity_10(benchmark::State& state) {
 
     size_t i = 0;
     for (auto _ : state) {
-        decltype(qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i], vecs[8][i], vecs[9][i])) result;
-        result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i], vecs[8][i], vecs[9][i]);
+        auto result = qc::flat_array::visit(visitor, vecs[0][i], vecs[1][i], vecs[2][i], vecs[3][i], vecs[4][i], vecs[5][i], vecs[6][i], vecs[7][i], vecs[8][i], vecs[9][i]);
         benchmark::DoNotOptimize(result);
         i = (i + 1) % N;
     }
